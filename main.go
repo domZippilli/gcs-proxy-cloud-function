@@ -14,6 +14,7 @@ import (
 var BUCKET string
 var GCS *storage.Client
 
+// init is run once, on a function "cold start"
 func init() {
 	// set the bucket name from environment variable
 	BUCKET = os.Getenv("BUCKET_NAME")
@@ -26,6 +27,8 @@ func init() {
 	GCS = c
 }
 
+// ProxyGCS is the entry point for the cloud function, providing a proxy that
+// permits HTTP protocol usage of a GCS bucket's contents.
 func ProxyGCS(output http.ResponseWriter, input *http.Request) {
 	ctx := context.Background()
 
@@ -39,11 +42,18 @@ func ProxyGCS(output http.ResponseWriter, input *http.Request) {
 	return
 }
 
+// GET handles GET requests.
 func GET(ctx context.Context, output http.ResponseWriter, input *http.Request) {
 	// Do the request to get response content stream
-	responseContent, err := GCS.Bucket(BUCKET).Object(input.URL.String()[1:]).NewReader(ctx)
+	objectName := convertURLtoObject(input.URL.String())
+	responseContent, err := GCS.Bucket(BUCKET).Object(objectName).NewReader(ctx)
 	if err != nil {
-		log.Fatal(err)
+		if err == storage.ErrObjectNotExist {
+			http.Error(output, "404 - Not Found", http.StatusNotFound)
+			return
+		} else {
+			log.Fatal(err)
+		}
 	}
 	defer responseContent.Close()
 
@@ -53,4 +63,15 @@ func GET(ctx context.Context, output http.ResponseWriter, input *http.Request) {
 		log.Fatal(err)
 	}
 	return
+}
+
+// convertURLtoObject converts a URL to an appropriate object path. This also
+// includes redirecting root requests "/" to index.html.
+func convertURLtoObject(url string) (object string) {
+	switch url {
+	case "/":
+		return "index.html"
+	default:
+		return url[1:]
+	}
 }
