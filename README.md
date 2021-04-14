@@ -1,6 +1,8 @@
 # gcs-proxy-cloud-function
 
-A Cloud Function to proxy a GCS bucket. Useful for conditional serving logic, transcoding, certain security features, etc.
+A Cloud Function to proxy a GCS bucket with an HTTP Cloud Function. Useful for conditional serving logic, transcoding, certain security features, etc.
+
+Many use cases can be satisfied by using [built-in static website hosting for GCS with a Cloud Load Balancer](https://cloud.google.com/storage/docs/hosting-static-website). If there are limitations of that feature that are blocking you, this proxy approach might be for you. 
 
 ## Deployment
 
